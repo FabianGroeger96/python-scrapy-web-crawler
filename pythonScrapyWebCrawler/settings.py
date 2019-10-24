@@ -14,8 +14,8 @@ BOT_NAME = 'pythonScrapyWebCrawler'
 SPIDER_MODULES = ['pythonScrapyWebCrawler.spiders']
 NEWSPIDER_MODULE = 'pythonScrapyWebCrawler.spiders'
 
-FEED_URI = 'pythonScrapyWebCrawler/data/%(name)s/%(time)s-data.csv'
-FEED_FORMAT = 'csv'
+FEED_URI = 'pythonScrapyWebCrawler/data/%(name)s/%(time)s-data.json'
+FEED_FORMAT = 'json'
 
 # Crawl responsibly by identifying yourself (and your website) on the user-agent
 #USER_AGENT = 'pythonScrapyWebCrawler (+http://www.yourdomain.com)'

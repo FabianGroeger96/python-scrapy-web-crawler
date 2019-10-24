@@ -7,7 +7,7 @@ from pythonScrapyWebCrawler.items import ArticleItem
 class KlexikonSpider(CrawlSpider):
 
     name = 'klexikon'
-    allowed_domains = ['klexikon.zum.de', 'de.wikipedia.org']
+    allowed_domains = ['klexikon.zum.de']
     start_urls = [
         'https://klexikon.zum.de/wiki/Kategorie:Klexikon-Artikel'
     ]
@@ -43,12 +43,10 @@ class KlexikonSpider(CrawlSpider):
 
         content = ''
         for node in response.xpath('//div[@class="mw-content-ltr"]/*'):
-            if '<p>' in node.get()[:5]:
-                content = content + node.xpath('string()').extract()[0]
-            elif '<h2>' in node.get()[:5]:
-                break
+            content = content + node.xpath('string()').extract()[0]
 
         content = content.replace('\n', '')
+        content = content.replace('\t', '')
         content = re.sub(' +', ' ', content)
 
         article_item = ArticleItem()
@@ -56,31 +54,4 @@ class KlexikonSpider(CrawlSpider):
         article_item['title'] = title
         article_item['content'] = content
         article_item['datasource'] = 'Klexikon'
-        yield article_item
-
-        wikipedia_link = str(response.url).replace('https://klexikon.zum.de/', 'https://de.wikipedia.org/')
-        yield scrapy.Request(wikipedia_link, callback=self.parse_wikipedia_article)
-
-    def parse_wikipedia_article(self, response):
-        for response_title in response.xpath('//h1[@class="firstHeading"]'):
-            title = response_title.xpath('string()').extract()[0]
-
-        content = ''
-        for node in response.xpath('//div[@class="mw-content-ltr"]/div[@class="mw-parser-output"]/*'):
-            if '<p>' in node.get()[:5]:
-                content = content + node.xpath('string()').extract()[0]
-            elif '<h2>' in node.get()[:5]:
-                break
-
-        content = content.replace('\n', '')
-        content = re.sub(r".mw-parser-output .IPA a{text-decoration:none}ˈ*", '', content)
-        content = re.sub(r"\[.*?\]", '', content)
-        content = re.sub(' +', ' ', content)
-        content = re.sub(' +', ' ', content)
-
-        article_item = ArticleItem()
-        article_item['url'] = response.url
-        article_item['title'] = title
-        article_item['content'] = content
-        article_item['datasource'] = 'Wikipedia'
         yield article_item
