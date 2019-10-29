@@ -22,6 +22,7 @@ class KlexikonWikipediaSpider(CrawlSpider):
             next_page = links.css('a::attr(href)').extract()[0]
             if 'wiki' in next_page:
                 yield scrapy.Request(response.urljoin(next_page), callback=self.parse_klexikon_article)
+                break
 
     def parse_next(self, response):
         for links in response.xpath('//div[@id="mw-pages"]'):
@@ -33,6 +34,7 @@ class KlexikonWikipediaSpider(CrawlSpider):
             next_page = links.css('a::attr(href)').extract()[0]
             if 'wiki' in next_page:
                 yield scrapy.Request(response.urljoin(next_page), callback=self.parse_klexikon_article)
+                break
 
     def parse_klexikon_article(self, response):
         if 'https://klexikon.zum.de/wiki/Datei' in str(response.url):
@@ -45,17 +47,14 @@ class KlexikonWikipediaSpider(CrawlSpider):
         for node in response.xpath('//div[@class="mw-content-ltr"]/*'):
             if '<p>' in node.get()[:5]:
                 content = content + node.xpath('string()').extract()[0]
-            elif '<h2>' in node.get()[:5]:
-                break
 
-        content = content.replace('\n', '')
-        content = re.sub(' +', ' ', content)
+        content = self.preprocess_content(content)
 
         article_item = ArticleItem()
         article_item['url'] = response.url
         article_item['title'] = title
         article_item['content'] = content
-        article_item['datasource'] = 'Klexikon'
+        article_item['datasource'] = 'klexikon'
         yield article_item
 
         wikipedia_link = str(response.url).replace('https://klexikon.zum.de/', 'https://de.wikipedia.org/')
@@ -69,18 +68,33 @@ class KlexikonWikipediaSpider(CrawlSpider):
         for node in response.xpath('//div[@class="mw-content-ltr"]/div[@class="mw-parser-output"]/*'):
             if '<p>' in node.get()[:5]:
                 content = content + node.xpath('string()').extract()[0]
-            elif '<h2>' in node.get()[:5]:
-                break
 
-        content = content.replace('\n', '')
-        content = re.sub(r".mw-parser-output .IPA a{text-decoration:none}ˈ*", '', content)
-        content = re.sub(r"\[.*?\]", '', content)
-        content = re.sub(' +', ' ', content)
-        content = re.sub(' +', ' ', content)
+        content = self.preprocess_content(content)
 
         article_item = ArticleItem()
         article_item['url'] = response.url
         article_item['title'] = title
         article_item['content'] = content
-        article_item['datasource'] = 'Wikipedia'
+        article_item['datasource'] = 'wikipedia'
         yield article_item
+
+    def preprocess_content(self, content):
+        # remove line breaks
+        content = re.sub(r'\n', '', content)
+        # remove all brackets
+        content = re.sub(r'\(.*?\)', '', content)
+        content = re.sub(r'\{.*?\}', '', content)
+        content = re.sub(r"\[.*?\]", '', content)
+        content = re.sub(r'\<.*?\>', '', content)
+        # replace "
+        content = re.sub(r'(\“)+|(\„)+|(\")', "'", content)
+        # replace . after number (19. Oct -> 19 Oct)
+        for match in re.finditer(r'\d+?\.', content):
+            content = content.replace(match.group(), match.group().replace('.', ''))
+        # remove all * (lists)
+        content = re.sub(r'(\*+)', '', content)
+        # remove multiple whitespaces
+        content = re.sub(r'\s+', ' ', content)
+        # remove whitespaces before and after string
+        content = content.strip()
+        return content
