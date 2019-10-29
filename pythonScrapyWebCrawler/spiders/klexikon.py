@@ -1,7 +1,7 @@
 import scrapy
-import re
 from scrapy.spiders import CrawlSpider, Rule
 from pythonScrapyWebCrawler.items import ArticleItem
+from pythonScrapyWebCrawler.utils import processor
 
 
 class KlexikonSpider(CrawlSpider):
@@ -38,16 +38,9 @@ class KlexikonSpider(CrawlSpider):
         if 'https://klexikon.zum.de/wiki/Datei' in str(response.url):
             return
 
-        for response_title in response.css('.firstHeading'):
-            title = response_title.css('span::text').get()
-
-        content = ''
-        for node in response.xpath('//div[@class="mw-content-ltr"]/*'):
-            content = content + node.xpath('string()').extract()[0]
-
-        content = content.replace('\n', '')
-        content = content.replace('\t', '')
-        content = re.sub(' +', ' ', content)
+        title = processor.extract_title(response)
+        content = processor.extract_content(response, '//div[@class="mw-content-ltr"]/*')
+        content = processor.preprocess_content(content)
 
         article_item = ArticleItem()
         article_item['url'] = response.url
