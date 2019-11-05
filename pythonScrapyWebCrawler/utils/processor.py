@@ -19,26 +19,39 @@ def extract_content(response, xpath):
 
 def preprocess_content(content):
     # remove line breaks
-    content = re.sub(r'\n', '', content)
+    content = re.sub(r'\n', ' ', content)
 
     # remove all brackets
-    content = re.sub(r'\(.*?\)', '', content)
-    content = re.sub(r'\{.*?\}', '', content)
-    content = re.sub(r"\[.*?\]", '', content)
-    content = re.sub(r'\<.*?\>', '', content)
+    content = re.sub(r'\(.*?\)', ' ', content)
+    content = re.sub(r'\{.*?\}', ' ', content)
+    content = re.sub(r"\[.*?\]", ' ', content)
+    content = re.sub(r'\<.*?\>', ' ', content)
 
     # replace "
-    content = re.sub(r'(\“)+|(\„)+|(\")', "'", content)
+    content = re.sub(r'(\“)+|(\„)+|(\")+', "'", content)
 
     # replace . after number (19. Oct -> 19 Oct)
     for match in re.finditer(r'\d+?\.', content):
-        content = content.replace(match.group(), match.group().replace('.', ''))
+        content = content.replace(match.group(), match.group().replace('.', ' '))
 
     # remove all * (lists)
-    content = re.sub(r'(\*+)', '', content)
+    content = re.sub(r'(\*+)', ' ', content)
 
     # remove multiple whitespaces
     content = re.sub(r'\s+', ' ', content)
+
+    # remove whitespace before point, comma, etc.
+    for match in re.finditer(r'((\S)+\s+\.)', content):
+        content = content.replace(match.group(), match.group().replace(' ', ''))
+
+    for match in re.finditer(r'((\S)+\s+\,)', content):
+        content = content.replace(match.group(), match.group().replace(' ', ''))
+
+    for match in re.finditer(r'((\S)+\s+\:)', content):
+        content = content.replace(match.group(), match.group().replace(' ', ''))
+
+    for match in re.finditer(r'((\S)+\s+\;)', content):
+        content = content.replace(match.group(), match.group().replace(' ', ''))
 
     # remove whitespaces before and after string
     content = content.strip()
